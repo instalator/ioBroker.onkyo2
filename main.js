@@ -243,7 +243,7 @@ function parse(zone, cmd, val, iscp){
         infomation of Video(Same Immediate Display ',' is separator of infomations)
         a…a: Video Input Port
         b…b: Input Resolution, Frame Rate
-        c…c: RGB/YCbCr
+        c…c: RGB/YCbCr 
         d…d: Color Depth
         e…e: Video Output Port
         f…f: Output Resolution, Frame Rate
