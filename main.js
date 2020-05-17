@@ -230,7 +230,7 @@ function parse(zone, cmd, val, iscp){
         /*a...a: Audio Input Port
         b…b: Input Signal Format
         c…c: Sampling Frequency
-        d…d: Input Signal Channel
+        d…d: Input Signal Channel 
         e…e: Listening Mode
         f…f: Output Signal Channel*/
         if(~val.indexOf(',')){
