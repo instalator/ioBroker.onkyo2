@@ -39,7 +39,7 @@ function startAdapter(options){
                         if (state.val.match(/^[A-Z0-9\-+]+$/)){
                             eiscp.raw(state.val);
                         } else {
-                            eiscp.command(state.val);
+                            eiscp.command(zone, cmd, state.val);
                         }
                         return;
                     }
@@ -59,6 +59,9 @@ function startAdapter(options){
                         SetIntervalVol(cmd, val, zone);
                     } else {
                         eiscp.command(zone, cmd, val);
+                        setTimeout(() => {
+                            eiscp.command(zone, cmd, 'query');
+                        }, 500);
                     }
                 }
             } else {
@@ -68,8 +71,17 @@ function startAdapter(options){
     }));
 }
 
+function clearStatePlayer(){
+    states.dock.current_duration.val = '00:00';
+    states.dock.current_elapsed.val = '00:00';
+    states.dock.current_track.val = 0;
+    states.dock.duration_sec.val = 0;
+    states.dock['net-usb-time-info'].val = '00:00/00:00';
+    states.dock.seek.val = 0;
+}
+
 function parse(zone, cmd, val, iscp){
-    iscp = iscp.slice(0, 3);
+    console.log('zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
     val = val || null;
     if (iscp === 'NLT'){
         // 00 2 2 0000 0000 00 0 1 04 00 00
@@ -209,7 +221,7 @@ function parse(zone, cmd, val, iscp){
         states.dock.CharacterTitleBar = {val: val.substr(22)};
     }
     if (iscp === 'NLS'){
-        //console.log(val);
+        console.log(' iscp === \'NLS\' - ' + val);
     }
     if (iscp === 'NTI'){
     }
@@ -295,13 +307,13 @@ function parse(zone, cmd, val, iscp){
                 'B': 'Bluetooth Adaptor',
                 'x': 'disable'
             },
-            RearUSBStatus:{
-                "-": 'no device', 
-                "i": 'iPod/iPhone',
-                "M": 'Memory/NAS', 
-                "W": 'Wireless Adaptor', 
-                "B": 'Bluetooth Adaptor',
-                "x": 'disable'
+            RearUSBStatus:       {
+                '-': 'no device',
+                'i': 'iPod/iPhone',
+                'M': 'Memory/NAS',
+                'W': 'Wireless Adaptor',
+                'B': 'Bluetooth Adaptor',
+                'x': 'disable'
             }
         };
         states.dock.NETConnectionstatus = {val: NDS.NETConnectionstatus[NET]};
@@ -333,7 +345,7 @@ function parse(zone, cmd, val, iscp){
         states.dock.duration_sec = {val: duration};
         states.dock.current_duration = {val: current_duration};
         states.dock.current_elapsed = {val: current_elapsed};
-        states.dock.seek = {val: parseFloat((elapsed / duration) * 100 ).toFixed(4)};
+        states.dock.seek = {val: parseFloat((elapsed / duration) * 100).toFixed(4)};
     }
     if (iscp === 'NST'){
         const play = val.substr(0, 1);
@@ -363,9 +375,10 @@ function parse(zone, cmd, val, iscp){
                 'x': 'disable'
             }
         };
-        states.dock.state_playing = {val: NST.play[play]};
+        states.dock.state_playing = {val: NST.play[play].toLowerCase()};
         states.dock.repeat = {val: NST.repeat[repeat]};
         states.dock.shuffle = {val: NST.shuffle[shuffle]};
+        if (states.dock.state_playing === 'stop') clearStatePlayer();
     }
     if (iscp === 'IFA'){
         // "IFA" - Audio Infomation Command
@@ -396,7 +409,7 @@ function parse(zone, cmd, val, iscp){
         i...i: Picture Mode*/
         //let arr = val.split(',');
     }
-    if (iscp === 'NJA') {
+    if (iscp === 'NJA'){
         /*
             "tpxxxxxxxxxxxx"	"NET/USB Jacket Art/Album Art Data
             t-> Image type 0:BMP, 1:JPEG, 2:URL, n:No Image
@@ -435,8 +448,7 @@ function parse(zone, cmd, val, iscp){
     }
 
 
-    
-    if (states[zone][cmd] !== undefined){
+    if (states[zone][cmd] && states[zone][cmd] !== undefined){
         states[zone][cmd].val = val;
     } else {
         adapter.log.error('zone ' + zone + ' cmd ' + cmd + ' val ' + val);
