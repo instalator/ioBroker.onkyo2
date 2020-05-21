@@ -11,7 +11,21 @@ let states = {
 };
 
 const objects = {
-    volume: {role: 'media.volume', name: 'Media volume', type: 'string', read: true, write: true}
+    volume:                     {role: 'media.volume', name: 'Media volume', type: 'string', read: true, write: true},
+    duration_sec:               {role: 'media.duration', name: 'Duration track in secunds', type: 'number', read: true, write: false},
+    current_duration:           {role: 'media.duration.text', name: 'Playback duration', type: 'string', read: true, write: false},
+    current_elapsed:            {role: 'media.elapsed.text', name: 'Playback elapsed', type: 'string', read: true, write: false},
+    seek:                       {role: 'media.seek', name: 'Controlling playback seek', type: 'number', unit: '%', min: 0, max: 100, read: true, write: true},
+    repeat:                     {role: 'media.mode.repeat', name: 'Repeat control', type: 'string', read: true, write: true, states: {Off: 'off', All: 'all', 'Repeat 1': 'one', 'Folder': 'folder'}},
+    shuffle:                    {role: 'media.mode.shuffle', name: 'Shuffle control', type: 'boolean', read: true, write: true, states: {Off: 'off', All: 'all', 'Album': 'album', 'Folder': 'folder'}},
+    state_playing:              {role: 'media.state', name: 'Status Play, stop, or pause', type: 'string', read: true, write: false},
+    current_track:              {role: 'media.track', name: 'Controlling and state current play track number', type: 'number', read: true, write: true},
+    'net-usb-album-name-info':  {role: 'media.album', name: 'Album', type: 'string', read: true, write: false},
+    'net-usb-artist-name-info': {role: 'media.artist', name: 'Artist', type: 'string', read: true, write: false},
+    'net-usb-title-name':       {role: 'media.title', name: 'Title', type: 'string', read: true, write: false},
+    total_track:                {role: 'media', name: 'Number of tracks in the playlist', type: 'number', read: true, write: false},
+
+    
 };
 
 function startAdapter(options){
@@ -356,8 +370,8 @@ function parse(zone, cmd, val, iscp){
                 'S': 'STOP',
                 'P': 'Play',
                 'p': 'Pause',
-                'F': 'FF',
-                'R': 'FR',
+                'F': 'Play', //FF
+                'R': 'Play', //FR
                 'E': 'EOF'
             },
             repeat:  {
