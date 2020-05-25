@@ -1,7 +1,7 @@
 'use strict';
 const utils = require('@iobroker/adapter-core');
 const eiscp = require('./lib/eiscp');
-let adapter, old_states;
+let adapter, old_states, timeOutQuery;
 let states = {
     main:  {},
     zone2: {},
@@ -33,6 +33,7 @@ function startAdapter(options){
         name:        'onkyo2',
         ready:       main,
         unload:      (callback) => {
+            timeOutQuery && clearTimeout(timeOutQuery);
             try {
                 eiscp.close();
                 adapter.log.info('cleaned everything up...');
@@ -98,7 +99,7 @@ function startAdapter(options){
                         });
                     } else {
                         eiscp.command(zone, cmd, val);
-                        setTimeout(() => {
+                        timeOutQuery = setTimeout(() => {
                             eiscp.command(zone, cmd, 'query');
                         }, 500);
                     }

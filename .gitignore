@@ -6,6 +6,7 @@ nbproject
 devfiles
 # npm package files
 iobroker.*.tgz
+tsconfig.json
 
 Thumbs.db
 lib/out_file.xls

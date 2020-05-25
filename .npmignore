@@ -13,6 +13,7 @@ travis/
 appveyor.yml
 .travis.yaml
 appveyor.yaml
+tsconfig.json
 
 lib/out_file.xls
 lib/out_file_dock.xls
