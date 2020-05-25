@@ -25,7 +25,7 @@ const objects = {
     'net-usb-title-name':       {role: 'media.title', name: 'Title', type: 'string', read: true, write: false},
     total_track:                {role: 'media', name: 'Number of tracks in the playlist', type: 'number', read: true, write: false},
 
-    
+
 };
 
 function startAdapter(options){
@@ -47,8 +47,8 @@ function startAdapter(options){
                 if (state && !state.ack){
                     const ids = id.split('.');
                     const zone = ids[2];
-                    const cmd = ids[3];
-                    const val = state.val.toString();
+                    let cmd = ids[3];
+                    let val = state.val.toString();
                     if (zone === 'command'){
                         if (state.val.match(/^[A-Z0-9\-+]+$/)){
                             eiscp.raw(state.val);
@@ -57,26 +57,52 @@ function startAdapter(options){
                         }
                         return;
                     }
-                    /*
-                    TUN [
-                        'SLI24',
-                        'TUNDIRECT',
-                        'TUN' + new_val.substr(0,1),
-                        'TUN' + new_val.substr(1,1),
-                        'TUN' + new_val.substr(2,1),
-                        'TUN' + new_val.substr(4,1),
-                        'TUN' + new_val.substr(5,1),
-                        'TUZQSTN'
-                        ];
-                     */
-                    if (~ids.indexOf('volume')){
+                    if (cmd === 'next' || cmd === 'pause' || cmd === 'play' || cmd === 'prev' || cmd === 'stop'){
+                        /*if(zone === 'dock'){
+                            cmd = 'network-usb-key';
+                        } else if(zone === 'zone2'){
+                            cmd = 'network-usb-key';
+                        }
+                        eiscp.command(zone, cmd, val);
+                        adapter.getObject(id, (err, obj) => {
+                            if (!err && obj){
+                                val = obj.native[cmd];
+                                eiscp.command(zone, cmd, val);
+                            }
+                        });*/
+                    } else if (~ids.indexOf('volume')){
                         SetIntervalVol(cmd, val, zone);
+                    } else if (cmd === 'tuning'){
+                        val = val.replace('.', '');
+                        /*let tune = 'SLI24';
+                        if (zone !== 'main' && states[zone]['selector'] === 'am'){
+                            tune = 'SLI25';
+                        } else if (zone === 'main' && states[zone]['input-selector'] === 'am'){
+                            tune = 'SLI25';
+                        }*/
+                        const TUN = [
+                            //tune,
+                            'TUNDIRECT',
+                            'TUN' + val.substr(0, 1),
+                            'TUN' + val.substr(1, 1),
+                            'TUN' + val.substr(2, 1),
+                            'TUN' + val.substr(3, 1),
+                            'TUN' + val.substr(4, 1)
+                        ];
+                        TUN.forEach((key) => {
+                            if (~key.indexOf('TUN') && key !== 'TUNDIRECT'){
+                                if (/TUN\d/.test(key)) eiscp.raw(key);
+                            } else {
+                                eiscp.raw(key);
+                            }
+                        });
                     } else {
                         eiscp.command(zone, cmd, val);
                         setTimeout(() => {
                             eiscp.command(zone, cmd, 'query');
                         }, 500);
                     }
+
                 }
             } else {
                 adapter.log.info(`state ${id} deleted`);
@@ -94,6 +120,7 @@ function clearStatePlayer(){
     states.dock.seek.val = 0;
 }
 
+let objNLS = [];
 function parse(zone, cmd, val, iscp){
     console.log('zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
     val = val || null;
@@ -236,8 +263,47 @@ function parse(zone, cmd, val, iscp){
     }
     if (iscp === 'NLS'){
         console.log(' iscp === \'NLS\' - ' + val);
+        if(val.length === 3){
+            objNLS = [];
+        }
+        objNLS.push(val);
+        /*
+            t ->Information Type (A : ASCII letter, C : Cursor Info, U : Unicode letter)
+            when t = A,
+                    l ->Line Info (0-9 : 1st to 10th Line)
+                nnnnnnnnn:Listed data (variable-length, 64 ASCII letters max)
+                when AVR is not displayed NET/USB List(Keyboard,Menu,Popup…), ""nnnnnnnnn"" is ""See TV"".
+                    p ->Property
+                - : no
+                0 : Playing, A : Artist, B : Album, F : Folder, M : Music, P : Playlist, S : Search
+                a : Account, b : Playlist-C, c : Starred, d : Unstarred, e : What's New
+            when t = C,
+                    l ->Cursor Position (0-9 : 1st to 10th Line, - : No Cursor)
+                p ->Update Type (P : Page Infomation Update ( Page Clear or Disable List Info) , C : Cursor Position Update)
+            when t = U, (for Network Control Only)
+                l ->Line Info (0-9 : 1st to 10th Line)
+                nnnnnnnnn:Listed data (variable-length, 64 Unicode letters [UTF-8 encoded] max)
+                when AVR is not displayed NET/USB List(Keyboard,Menu,Popup…), ""nnnnnnnnn"" is ""See TV"".
+                    p ->Property
+                - : no
+                0 : Playing, A : Artist, B : Album, F : Folder, M : Music, P : Playlist, S : Search
+                a : Account, b : Playlist-C, c : Starred, d : Unstarred, e : What's New"
+                
+                //////////////////////////////////////
+                "ti"	"select the listed item
+                 t -> Index Type (L : Line, I : Index)
+                when t = L,
+                  i -> Line number (0-9 : 1st to 10th Line [1 digit] )
+                when t = I,
+                  iiiii -> Index number (00001-99999 : 1st to 99999th Item [5 digits] )"
+
+        */
+        val = JSON.stringify(objNLS);
     }
     if (iscp === 'NTI'){
+    }
+    if (iscp === 'TUN' || iscp === 'TUZ' || iscp === 'TU3' || iscp === 'TU4'){
+        val = val / 100;
     }
     if (iscp === 'NTR'){
         // "cccc/tttt"	NET/USB Track Info (Current Track/Toral Track Max 9999. If Track is unknown, this response is ----)
@@ -253,6 +319,7 @@ function parse(zone, cmd, val, iscp){
         //states.dock.seek = {val: };
     }
     if (iscp === 'NLA'){
+        console.log();
         // NET/USB List Info(All item, need processing XML data, for Network Control Only)
         /*
         * "tzzzzsurr<.....>"	"t -> responce type 'X' : XML
@@ -299,7 +366,7 @@ function parse(zone, cmd, val, iscp){
     xxxx -> index number (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
     ---- -> not used"
          */
-        //states.dock.seek = {val: };
+        //states.dock = {val: };
     }
     if (iscp === 'NDS'){
         /*- "NDS" - NET Connection/USB Device Status
@@ -359,7 +426,7 @@ function parse(zone, cmd, val, iscp){
         states.dock.duration_sec = {val: duration};
         states.dock.current_duration = {val: current_duration};
         states.dock.current_elapsed = {val: current_elapsed};
-        states.dock.seek = {val: parseFloat((elapsed / duration) * 100).toFixed(4)};
+        states.dock.seek = {val: isNaN(parseFloat((elapsed / duration) * 100).toFixed(4)) ? 0 :parseFloat((elapsed / duration) * 100).toFixed(4)};
     }
     if (iscp === 'NST'){
         const play = val.substr(0, 1);
@@ -404,9 +471,9 @@ function parse(zone, cmd, val, iscp){
         d…d: Input Signal Channel 
         e…e: Listening Mode
         f…f: Output Signal Channel*/
-        if (~val.indexOf(',')){
+        /*if (~val.indexOf(',')){
             let arr = val.split(',');
-        }
+        }*/
     }
     if (iscp === 'IFV'){
         // "IFV" - Video Infomation Command
@@ -499,10 +566,12 @@ function setObject(ids, zone, cmd, val){
         let common = {
             name: states[zone][cmd].desc, desc: states[zone][cmd].desc, type: 'string', role: 'state'
         };
-        common.states = {};
+        let native = {};
         if (states[zone][cmd].values !== undefined){
+            common.states = {};
             Object.keys(states[zone][cmd].values).forEach((key) => {
                 common.states[key] = key;
+                native[key] = states[zone][cmd].values[key].native;
             });
         }
         if (objects[cmd] !== undefined){
@@ -519,12 +588,12 @@ function setObject(ids, zone, cmd, val){
         }
         if (err || !obj){
             adapter.setObject(ids, {
-                type: 'state', common: common, native: {}
+                type: 'state', common: common, native: native
             });
             adapter.setState(ids, {val: val, ack: true});
         } else {
             if (JSON.stringify(obj.common) !== JSON.stringify(common) || objects[cmd] !== undefined){
-                adapter.extendObject(ids, {common: common});
+                adapter.extendObject(ids, {common: common, native: native});
             }
             adapter.setState(ids, {val: val, ack: true});
         }
@@ -537,7 +606,7 @@ function getCommands(){
         eiscp.get_commands(_zone, (err, cmds) => {
             cmds.forEach((cmd) => {
                 eiscp.get_command(_zone, cmd, (err, values) => {
-                    states[_zone][cmd] = {values: values.values, val: null, desc: values.desc};
+                    states[_zone][cmd] = {values: values.values, val: null, desc: values.desc, native: values.native};
                     setObject(_zone + '.' + cmd, _zone, cmd, states[_zone][cmd].val);
                     eiscp.command(_zone, cmd, 'query');
                 });

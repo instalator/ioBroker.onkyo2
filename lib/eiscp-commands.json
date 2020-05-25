@@ -5628,8 +5628,8 @@
         }
       },
       "PRS": {
-        "name": "preset2",
-        "description": "Preset2 Command",
+        "name": "preset3",
+        "description": "Preset3 Command",
         "values": {
           "1,40": {
             "name": "preset-no-1-40",
@@ -5680,8 +5680,8 @@
         }
       },
       "NTC": {
-        "name": "net-tune",
-        "description": "Net-Tune/Network Operation Command(Net-Tune Model Only)",
+        "name": "net-tune3",
+        "description": "Net-Tune3/Network Operation Command(Net-Tune Model Only)",
         "values": {
           "PLAYz": {
             "name": "play-key",
@@ -6374,8 +6374,8 @@
             "models": "set260"
           },
           "P/P": {
-            "name": "play",
-            "description": "PLAY/PAUSE KEY",
+            "name": "play-pause",
+            "description": "PLAY-PAUSE KEY",
             "models": "set261"
           },
           "TRUP": {
@@ -31217,9 +31217,9 @@
       "selector": "SL3",
       "tuning3": "TUN",
       "tuning": "TU3",
-      "preset2": "PRS",
+      "preset3": "PRS",
       "preset": "PR3",
-      "net-tune": "NTC",
+      "net-tune3": "NTC",
       "network-tune-key": "NT3",
       "internet-radio-preset": "NP3"
     },
@@ -35880,8 +35880,8 @@
           "models": "set259"
         },
         "play": {
-          "value": "P/P",
-          "models": "set261"
+          "value": "PLAY",
+          "models": "set259"
         },
         "stop": {
           "value": "STOP",
@@ -35890,6 +35890,10 @@
         "pause": {
           "value": "PAUSE",
           "models": "set260"
+        },
+        "play-pause": {
+          "value": "P/P",
+          "models": "set261"
         },
         "track-up": {
           "value": "TRUP",
