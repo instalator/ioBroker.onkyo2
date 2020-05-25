@@ -55,7 +55,7 @@
     "main": "main.js",
     "icon": "onkyo2.png",
     "enabled": true,
-    "extIcon": "https://raw.githubusercontent.com/instalator/ioBroker.onkyo2/master/admin/onkyo.png",
+    "extIcon": "https://raw.githubusercontent.com/instalator/ioBroker.onkyo2/master/admin/onkyo2.png",
     "readme": "https://github.com/instalator/ioBroker.onkyo2/blob/master/README.md",
     "loglevel": "info",
     "mode": "daemon",
