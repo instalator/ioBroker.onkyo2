@@ -19,6 +19,9 @@ Control Onkyo and Pioneer AVRs via EISCP
 
 ## Changelog
 
+### 0.0.2
+* (instalator)
+
 ### 0.0.1
 * (instalator) initial release
 
