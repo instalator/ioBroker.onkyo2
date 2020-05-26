@@ -24,16 +24,16 @@ const objects = {
     'net-usb-artist-name-info': {role: 'media.artist', name: 'Artist', type: 'string', read: true, write: false},
     'net-usb-title-name':       {role: 'media.title', name: 'Title', type: 'string', read: true, write: false},
     total_track:                {role: 'media', name: 'Number of tracks in the playlist', type: 'number', read: true, write: false},
-
-
+    'net-usb-jacket-art':       {role: 'text.url', name: 'Cover', type: 'string', read: true, write: false},
+    'input-selector':           {role: 'media.input', name: 'Input Selector Command', type: 'string', read: true, write: true},
 };
 
 function startAdapter(options){
     return adapter = utils.adapter(Object.assign({}, options, {
         systemConfig: true,
-        name:        'onkyo2',
-        ready:       main,
-        unload:      (callback) => {
+        name:         'onkyo2',
+        ready:        main,
+        unload:       (callback) => {
             timeOutQuery && clearTimeout(timeOutQuery);
             try {
                 eiscp.close();
@@ -43,7 +43,7 @@ function startAdapter(options){
                 callback();
             }
         },
-        stateChange: (id, state) => {
+        stateChange:  (id, state) => {
             if (state){
                 if (state && !state.ack){
                     adapter.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
@@ -289,9 +289,6 @@ function parse(zone, cmd, val, iscp){
         */
         val = JSON.stringify(objNLS);
     }
-    if (iscp === 'NTI'){
-        console.log();
-    }
     if (iscp === 'TUN' || iscp === 'TUZ' || iscp === 'TU3' || iscp === 'TU4'){
         val = val / 100;
     }
@@ -299,64 +296,6 @@ function parse(zone, cmd, val, iscp){
         // "cccc/tttt"	NET/USB Track Info (Current Track/Toral Track Max 9999. If Track is unknown, this response is ----)
         states.dock.current_track = {val: val.split('/')[0]};
         states.dock.total_track = {val: val.split('/')[1]};
-    }
-    if (iscp === 'NTR'){
-        // - "NTS" - NET/USB Time Seek
-        //    "hh:mm:ss"	"hh: hours(00-99)
-        //    mm: munites (00-59)
-        //    ss: seconds (00-59)
-        //    This command is only available when Time Seek is enable."
-        //states.dock.seek = {val: };
-    }
-    if (iscp === 'NLA'){
-        console.log();
-        // NET/USB List Info(All item, need processing XML data, for Network Control Only)
-        /*
-        * "tzzzzsurr<.....>"	"t -> responce type 'X' : XML
-    zzzz -> sequence number (0000-FFFF)
-    s -> status 'S' : success, 'E' : error
-    u -> UI type '0' : List, '1' : Menu, '2' : Playback, '3' : Popup, '4' : Keyboard, ""5"" : Menu List
-    rr -> reserved
-    <.....> : XML data ( [CR] and [LF] are removed )
-     If s='S',
-     <?xml version=""1.0"" encoding=""UFT-8""?>
-     <response status=""ok"">
-       <items offset=""xxxx"" totalitems=""yyyy"" >
-         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
-         …
-         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
-       </Items>
-     </response>
-     If s='E',
-     <?xml version=""1.0"" encoding=""UFT-8""?>
-     <response status=""fail"">
-       <error code=""[error code]"" message=""[error message]"" />
-     </response>
-    xxxx : index of 1st item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    yyyy : number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )
-    aa : Icon ID
-     '29' : Folder, '2A' : Folder X, '2B' : Server, '2C' : Server X, '2D' : Title, '2E' : Title X,
-     '2F' : Program, '31' : USB, '36' : Play, '37' : MultiAccount,
-     for Spotify
-     '38' : Account, '39' : Album, '3A' : Playlist, '3B' : Playlist-C, '3C' : starred,
-     '3D' : What'sNew, '3E' : Artist, '3F' : Track, '40' : unstarred, '41' : Play, '43' : Search, '44' : Folder
-     for AUPEO!
-     '42' : Program
-    bbb...bbb : Title
-    "
-  * "Lzzzzllxxxxyyyy"	"specifiy to get the listed data (from Network Control Only)
-    zzzz -> sequence number (0000-FFFF)
-    ll -> number of layer (00-FF)
-    xxxx -> index of start item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    yyyy -> number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )"
-
-  * "Izzzzllxxxx----"	"select the listed item (from Network Control Only)
-    zzzz -> sequence number (0000-FFFF)
-    ll -> number of layer (00-FF)
-    xxxx -> index number (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    ---- -> not used"
-         */
-        //states.dock = {val: };
     }
     if (iscp === 'NDS'){
         /*- "NDS" - NET Connection/USB Device Status
@@ -483,44 +422,99 @@ function parse(zone, cmd, val, iscp){
     if (iscp === 'NJA'){
         let type;
         const types = {
-            0: 'bmp', 
-            1: 'jpeg', 
-            2: 'url', 
-            n: 'No Image', 
+            0: 'bmp',
+            1: 'jpeg',
+            2: 'url',
+            n: 'No Image',
         };
-        if(val[0] < 3){
+        if (val[0] < 3){
             type = types[val[0]];
         } else {
             val = dir + 'cover.png';
         }
-        if(val[1] === '0'){
+        if (val[1] === '0'){
             buffCover = val.slice(2);
-            val = dir + 'cover.png';
-        } 
+            cmd = null;
+        }
         if (val[1] === '1'){
             buffCover = buffCover + val.slice(2);
             cmd = null;
         }
-        if(val[1] === '2'){
+        if (val[1] === '2'){
             val = dir + 'cover.' + type;
             buffCover = buffCover + val.slice(2);
             const cover = Buffer.from(buffCover, 'hex').toString('base64');
             fs.writeFileSync(dir + 'cover.' + type, cover, {encoding: 'base64'});
             buffCover = '';
         }
+    }
+    if (iscp === 'NTS'){
+        // - "NTS" - NET/USB Time Seek
+        //    "hh:mm:ss"	"hh: hours(00-99)
+        //    mm: munites (00-59)
+        //    ss: seconds (00-59)
+        //    This command is only available when Time Seek is enable."
+        //states.dock.seek = {val: };
+    }
+    if (iscp === 'NLA'){
+        console.log();
+        // NET/USB List Info(All item, need processing XML data, for Network Control Only)
         /*
-            "tpxxxxxxxxxxxx"	"NET/USB Jacket Art/Album Art Data
-            t-> Image type 0:BMP, 1:JPEG, 2:URL, n:No Image
-            p-> Packet flag 0:Start, 1:Next, 2:End, -:not used
-            xxxxxxxxxxxxxx -> Jacket/Album Art Data (valiable length, 1024 ASCII HEX letters max)"
+        * "tzzzzsurr<.....>"	"t -> responce type 'X' : XML
+    zzzz -> sequence number (0000-FFFF)
+    s -> status 'S' : success, 'E' : error
+    u -> UI type '0' : List, '1' : Menu, '2' : Playback, '3' : Popup, '4' : Keyboard, ""5"" : Menu List
+    rr -> reserved
+    <.....> : XML data ( [CR] and [LF] are removed )
+     If s='S',
+     <?xml version=""1.0"" encoding=""UFT-8""?>
+     <response status=""ok"">
+       <items offset=""xxxx"" totalitems=""yyyy"" >
+         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
+         …
+         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
+       </Items>
+     </response>
+     If s='E',
+     <?xml version=""1.0"" encoding=""UFT-8""?>
+     <response status=""fail"">
+       <error code=""[error code]"" message=""[error message]"" />
+     </response>
+    xxxx : index of 1st item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+    yyyy : number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )
+    aa : Icon ID
+     '29' : Folder, '2A' : Folder X, '2B' : Server, '2C' : Server X, '2D' : Title, '2E' : Title X,
+     '2F' : Program, '31' : USB, '36' : Play, '37' : MultiAccount,
+     for Spotify
+     '38' : Account, '39' : Album, '3A' : Playlist, '3B' : Playlist-C, '3C' : starred,
+     '3D' : What'sNew, '3E' : Artist, '3F' : Track, '40' : unstarred, '41' : Play, '43' : Search, '44' : Folder
+     for AUPEO!
+     '42' : Program
+    bbb...bbb : Title
+    "
+  * "Lzzzzllxxxxyyyy"	"specifiy to get the listed data (from Network Control Only)
+    zzzz -> sequence number (0000-FFFF)
+    ll -> number of layer (00-FF)
+    xxxx -> index of start item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+    yyyy -> number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )"
+
+  * "Izzzzllxxxx----"	"select the listed item (from Network Control Only)
+    zzzz -> sequence number (0000-FFFF)
+    ll -> number of layer (00-FF)
+    xxxx -> index number (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+    ---- -> not used"
          */
+        //states.dock = {val: };
+    }
+    if (iscp === 'NTI'){
+        console.log();
     }
 
 
     if (cmd && states[zone][cmd] && states[zone][cmd] !== undefined){
         states[zone][cmd].val = val;
     } else {
-        adapter.log.error('zone ' + zone + ' cmd ' + cmd + ' val ' + val);
+        adapter.log.error('Parse function Error: zone ' + zone + ' cmd ' + cmd + ' val ' + val);
     }
     creatObjects(states);
 }
