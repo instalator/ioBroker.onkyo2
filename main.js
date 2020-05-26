@@ -1,7 +1,8 @@
 'use strict';
 const utils = require('@iobroker/adapter-core');
 const eiscp = require('./lib/eiscp');
-let adapter, old_states, timeOutQuery;
+const fs = require('fs');
+let adapter, old_states, timeOutQuery, objNLS = [], dir;
 let states = {
     main:  {},
     zone2: {},
@@ -9,7 +10,6 @@ let states = {
     zone4: {},
     dock:  {}
 };
-
 const objects = {
     volume:                     {role: 'media.volume', name: 'Media volume', type: 'string', read: true, write: true},
     duration_sec:               {role: 'media.duration', name: 'Duration track in secunds', type: 'number', read: true, write: false},
@@ -30,6 +30,7 @@ const objects = {
 
 function startAdapter(options){
     return adapter = utils.adapter(Object.assign({}, options, {
+        systemConfig: true,
         name:        'onkyo2',
         ready:       main,
         unload:      (callback) => {
@@ -44,8 +45,8 @@ function startAdapter(options){
         },
         stateChange: (id, state) => {
             if (state){
-                adapter.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
                 if (state && !state.ack){
+                    adapter.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
                     const ids = id.split('.');
                     const zone = ids[2];
                     let cmd = ids[3];
@@ -58,6 +59,9 @@ function startAdapter(options){
                         }
                         return;
                     }
+                    if (val === true || val === 'true') val = 'on';
+                    if (val === false || val === 'false') val = 'off';
+                    if ((cmd === 'system-power' || cmd === 'power') && (val === false || val === 'false')) val = 'standby';
                     if (cmd === 'next' || cmd === 'pause' || cmd === 'play' || cmd === 'prev' || cmd === 'stop'){
                         /*if(zone === 'dock'){
                             cmd = 'network-usb-key';
@@ -75,14 +79,7 @@ function startAdapter(options){
                         SetIntervalVol(cmd, val, zone);
                     } else if (cmd === 'tuning'){
                         val = val.replace('.', '');
-                        /*let tune = 'SLI24';
-                        if (zone !== 'main' && states[zone]['selector'] === 'am'){
-                            tune = 'SLI25';
-                        } else if (zone === 'main' && states[zone]['input-selector'] === 'am'){
-                            tune = 'SLI25';
-                        }*/
                         const TUN = [
-                            //tune,
                             'TUNDIRECT',
                             'TUN' + val.substr(0, 1),
                             'TUN' + val.substr(1, 1),
@@ -103,7 +100,6 @@ function startAdapter(options){
                             eiscp.command(zone, cmd, 'query');
                         }, 500);
                     }
-
                 }
             } else {
                 adapter.log.info(`state ${id} deleted`);
@@ -112,18 +108,10 @@ function startAdapter(options){
     }));
 }
 
-function clearStatePlayer(){
-    states.dock.current_duration.val = '00:00';
-    states.dock.current_elapsed.val = '00:00';
-    states.dock.current_track.val = 0;
-    states.dock.duration_sec.val = 0;
-    states.dock['net-usb-time-info'].val = '00:00/00:00';
-    states.dock.seek.val = 0;
-}
+let buffCover = '';
 
-let objNLS = [];
 function parse(zone, cmd, val, iscp){
-    console.log('zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
+    adapter.log.debug('parse function: zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
     val = val || null;
     if (iscp === 'NLT'){
         // 00 2 2 0000 0000 00 0 1 04 00 00
@@ -264,7 +252,7 @@ function parse(zone, cmd, val, iscp){
     }
     if (iscp === 'NLS'){
         console.log(' iscp === \'NLS\' - ' + val);
-        if(val.length === 3){
+        if (val.length === 3){
             objNLS = [];
         }
         objNLS.push(val);
@@ -302,6 +290,7 @@ function parse(zone, cmd, val, iscp){
         val = JSON.stringify(objNLS);
     }
     if (iscp === 'NTI'){
+        console.log();
     }
     if (iscp === 'TUN' || iscp === 'TUZ' || iscp === 'TU3' || iscp === 'TU4'){
         val = val / 100;
@@ -492,45 +481,43 @@ function parse(zone, cmd, val, iscp){
         //let arr = val.split(',');
     }
     if (iscp === 'NJA'){
+        let type;
+        const types = {
+            0: 'bmp', 
+            1: 'jpeg', 
+            2: 'url', 
+            n: 'No Image', 
+        };
+        if(val[0] < 3){
+            type = types[val[0]];
+        } else {
+            val = dir + 'cover.png';
+        }
+        if(val[1] === '0'){
+            buffCover = val.slice(2);
+            val = dir + 'cover.png';
+        } 
+        if (val[1] === '1'){
+            buffCover = buffCover + val.slice(2);
+            cmd = null;
+        }
+        if(val[1] === '2'){
+            val = dir + 'cover.' + type;
+            buffCover = buffCover + val.slice(2);
+            const cover = Buffer.from(buffCover, 'hex').toString('base64');
+            fs.writeFileSync(dir + 'cover.' + type, cover, {encoding: 'base64'});
+            buffCover = '';
+        }
         /*
             "tpxxxxxxxxxxxx"	"NET/USB Jacket Art/Album Art Data
             t-> Image type 0:BMP, 1:JPEG, 2:URL, n:No Image
             p-> Packet flag 0:Start, 1:Next, 2:End, -:not used
             xxxxxxxxxxxxxx -> Jacket/Album Art Data (valiable length, 1024 ASCII HEX letters max)"
          */
-        /*var covertype = string.substr(0,1)
-        adapter.log.debug('Covertype: ' + covertype);
-        if (covertype === '0') {
-            var image_type = 'bmp';
-        }
-        if (covertype === '1') {
-            var image_type = 'jpg';
-        }
-
-        var packetflag = string.substr(1,1)
-        adapter.log.debug('packetflag: ' + packetflag);
-        if (packetflag === '0') {
-            var hextob64 = new Buffer(cmd.iscp_command.substr(5), 'hex').toString('base64')
-            imageb64 = hextob64;
-        }
-        if (packetflag === '1') {
-            imageb64 = imageb64 + new Buffer(cmd.iscp_command.substr(5), 'hex').toString('base64');
-        }
-        if (packetflag === '2') {
-            imageb64 = imageb64 + new Buffer(cmd.iscp_command.substr(5), 'hex').toString('base64');
-            var img = '<img width="100%" height="100%" title="" alt="cross" src="data:image/' + image_type + ';base64,' + imageb64 +'">';
-            var coverurl = '/vis/CoverImage.' + image_type;
-            adapter.setState (adapter.namespace + '.' + 'Device.CoverURL', {val: coverurl, ack: true});
-            adapter.setState (adapter.namespace + '.' + 'Device.CoverBase64', {val: img, ack: true});
-            // safe bas64 data to file
-            fs.writeFileSync('/opt/iobroker/iobroker-data/files/vis/CoverImage.' + image_type, imageb64, {encoding: 'base64'}, function(err) {
-                adapter.log.debug('Cover file created');
-            });
-        }*/
     }
 
 
-    if (states[zone][cmd] && states[zone][cmd] !== undefined){
+    if (cmd && states[zone][cmd] && states[zone][cmd] !== undefined){
         states[zone][cmd].val = val;
     } else {
         adapter.log.error('zone ' + zone + ' cmd ' + cmd + ' val ' + val);
@@ -619,18 +606,15 @@ function getCommands(){
 function connect(options){
     adapter.log.info('Connecting to AVR ' + adapter.config.host + ':' + adapter.config.port);
     eiscp.connect(options);
-
     eiscp.on('connect', () => {
         adapter.log.info('Successfully connected to AVR');
         adapter.setState('info.connected', true, true);
         getCommands();
     });
-
     eiscp.on('close', () => {
         adapter.log.info('AVR disconnected');
         adapter.setState('info.connected', false, true);
     });
-
     eiscp.on('data', (res) => {
         adapter.log.debug('Response message: ' + JSON.stringify(res));
         if (res.command instanceof Array){
@@ -646,20 +630,33 @@ function connect(options){
         adapter.log.error('Error: ' + e);
     });
     eiscp.on('debug', (message) => {
-        adapter.log.debug(message);
+        //adapter.log.debug(message);
     });
 }
 
 function main(){
+    if (!adapter.systemConfig) return;
     adapter.subscribeStates('*');
     old_states = JSON.parse(JSON.stringify(states));
     const options = {
-        host:            adapter.config.host || null,
-        port:            adapter.config.port || 60128,
-        reconnect:       true,
-        verify_commands: true
+        host:      adapter.config.host || null,
+        port:      adapter.config.port || 60128,
+        model:     '',
+        reconnect: true
     };
+    dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + adapter.namespace.replace('.', '_') + '/';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    fs.copyFileSync(__dirname + '/admin/cover.png', dir + 'cover.png');
     connect(options);
+}
+
+function clearStatePlayer(){
+    states.dock.current_duration.val = '00:00';
+    states.dock.current_elapsed.val = '00:00';
+    states.dock.current_track.val = 0;
+    states.dock.duration_sec.val = 0;
+    states.dock['net-usb-time-info'].val = '00:00/00:00';
+    states.dock.seek.val = 0;
 }
 
 function SetIntervalVol(cmd, newVal, zone){

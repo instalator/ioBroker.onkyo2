@@ -27,7 +27,8 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "no-control-regex": 0
     },
     "parserOptions": {
         "ecmaVersion": 2017
