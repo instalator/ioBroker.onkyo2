@@ -2,7 +2,7 @@
 const utils = require('@iobroker/adapter-core');
 const eiscp = require('./lib/eiscp');
 const fs = require('fs');
-let adapter, old_states, timeOutQuery, objNLS = [], dir;
+let adapter, old_states, timeOutQuery, objNLS = [], pathInstance, buffCover = '', dir;
 let states = {
     main:  {},
     zone2: {},
@@ -23,8 +23,11 @@ const objects = {
     'net-usb-album-name-info':  {role: 'media.album', name: 'Album', type: 'string', read: true, write: false},
     'net-usb-artist-name-info': {role: 'media.artist', name: 'Artist', type: 'string', read: true, write: false},
     'net-usb-title-name':       {role: 'media.title', name: 'Title', type: 'string', read: true, write: false},
+    'net-usb-list-title-info':  {role: 'state', name: 'NET/USB List Title Info(for Network Control Only)', type: 'string', read: true, write: false},
+    'net-usb-listinfo':         {role: 'state', name: 'NET/USB ListInfo', type: 'string', read: true, write: false},
+    'net-usb-listinfo-current': {role: 'state', name: 'NET/USB List Info Curren Item', type: 'string', read: true, write: false},
     total_track:                {role: 'media', name: 'Number of tracks in the playlist', type: 'number', read: true, write: false},
-    'net-usb-jacket-art':       {role: 'text.url', name: 'Cover', type: 'string', read: true, write: false},
+    'net-usb-jacket-art':       {role: 'media.cover', name: 'Cover', type: 'string', read: true, write: false},
     'input-selector':           {role: 'media.input', name: 'Input Selector Command', type: 'string', read: true, write: true},
 };
 
@@ -51,6 +54,8 @@ function startAdapter(options){
                     const zone = ids[2];
                     let cmd = ids[3];
                     let val = state.val.toString();
+                    if (val === 'true') val = 'on';
+                    if (val === 'false') val = 'off';
                     if (zone === 'command'){
                         if (state.val.match(/^[A-Z0-9\-+]+$/)){
                             eiscp.raw(state.val);
@@ -59,25 +64,30 @@ function startAdapter(options){
                         }
                         return;
                     }
-                    if (val === true || val === 'true') val = 'on';
-                    if (val === false || val === 'false') val = 'off';
                     if ((cmd === 'system-power' || cmd === 'power') && (val === false || val === 'false')) val = 'standby';
+                    if (cmd === 'net-usb-listinfo-select'){
+                        if (state.val < 0) state.val = 0;
+                        if (state.val > 9) state.val = 9;
+                        eiscp.raw('NLSL' + state.val);
+                        return;
+                    }
                     if (cmd === 'next' || cmd === 'pause' || cmd === 'play' || cmd === 'prev' || cmd === 'stop'){
-                        /*if(zone === 'dock'){
-                            cmd = 'network-usb-key';
-                        } else if(zone === 'zone2'){
+                        if (zone === 'dock'){
                             cmd = 'network-usb-key';
                         }
-                        eiscp.command(zone, cmd, val);
                         adapter.getObject(id, (err, obj) => {
                             if (!err && obj){
-                                val = obj.native[cmd];
+                                val = obj.native.val;
                                 eiscp.command(zone, cmd, val);
                             }
-                        });*/
-                    } else if (~ids.indexOf('volume')){
+                        });
+                        return;
+                    }
+                    if (~ids.indexOf('volume')){
                         SetIntervalVol(cmd, val, zone);
-                    } else if (cmd === 'tuning'){
+                        return;
+                    }
+                    if (cmd === 'tuning'){
                         val = val.replace('.', '');
                         const TUN = [
                             'TUNDIRECT',
@@ -94,12 +104,12 @@ function startAdapter(options){
                                 eiscp.raw(key);
                             }
                         });
-                    } else {
-                        eiscp.command(zone, cmd, val);
-                        timeOutQuery = setTimeout(() => {
-                            eiscp.command(zone, cmd, 'query');
-                        }, 500);
+                        return;
                     }
+                    eiscp.command(zone, cmd, val);
+                    timeOutQuery = setTimeout(() => {
+                        eiscp.command(zone, cmd, 'query');
+                    }, 500);
                 }
             } else {
                 adapter.log.info(`state ${id} deleted`);
@@ -108,7 +118,7 @@ function startAdapter(options){
     }));
 }
 
-let buffCover = '';
+
 
 function parse(zone, cmd, val, iscp){
     adapter.log.debug('parse function: zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
@@ -252,11 +262,19 @@ function parse(zone, cmd, val, iscp){
     }
     if (iscp === 'NLS'){
         console.log(' iscp === \'NLS\' - ' + val);
-        if (val.length === 3){
-            objNLS = [];
+        if (val[0] === 'U'){
+            if (val[1] === '0'){
+                objNLS = [];
+                objNLS.push(val.replace(/U.-/, ''));
+                states[zone]['net-usb-listinfo-current'] = {val: objNLS[0]};
+            } else {
+                objNLS.push(val.replace(/U.-/, ''));
+            }
         }
-        objNLS.push(val);
-        /*
+        if (val[0] === 'C' && val[1] !== '-' && objNLS.length > 0){
+            states[zone]['net-usb-listinfo-current'] = {val: objNLS[parseInt(val[1], 10)]};
+        }
+        /* "tlpnnnnnnnnnn"
             t ->Information Type (A : ASCII letter, C : Cursor Info, U : Unicode letter)
             when t = A,
                     l ->Line Info (0-9 : 1st to 10th Line)
@@ -285,7 +303,6 @@ function parse(zone, cmd, val, iscp){
                   i -> Line number (0-9 : 1st to 10th Line [1 digit] )
                 when t = I,
                   iiiii -> Index number (00001-99999 : 1st to 99999th Item [5 digits] )"
-
         */
         val = JSON.stringify(objNLS);
     }
@@ -294,8 +311,8 @@ function parse(zone, cmd, val, iscp){
     }
     if (iscp === 'NTR'){
         // "cccc/tttt"	NET/USB Track Info (Current Track/Toral Track Max 9999. If Track is unknown, this response is ----)
-        states.dock.current_track = {val: val.split('/')[0]};
-        states.dock.total_track = {val: val.split('/')[1]};
+        states.dock.current_track = {val: parseInt(val.split('/')[0], 10)};
+        states.dock.total_track = {val: parseInt(val.split('/')[1], 10)};
     }
     if (iscp === 'NDS'){
         /*- "NDS" - NET Connection/USB Device Status
@@ -430,21 +447,22 @@ function parse(zone, cmd, val, iscp){
         if (val[0] < 3){
             type = types[val[0]];
         } else {
-            val = dir + 'cover.png';
+            val = '../vis.0/' + pathInstance + 'cover.png';
         }
         if (val[1] === '0'){
             buffCover = val.slice(2);
-            cmd = null;
+            return;
         }
         if (val[1] === '1'){
             buffCover = buffCover + val.slice(2);
-            cmd = null;
+            return;
         }
         if (val[1] === '2'){
-            val = dir + 'cover.' + type;
+            val = '../vis.0/' + pathInstance + 'cover.' + type;
             buffCover = buffCover + val.slice(2);
-            const cover = Buffer.from(buffCover, 'hex').toString('base64');
-            fs.writeFileSync(dir + 'cover.' + type, cover, {encoding: 'base64'});
+            const cover = Buffer.from(buffCover, 'hex');//.toString('base64');
+            //fs.writeFileSync(dir + 'cover.' + type, cover, {encoding: 'base64'});
+            adapter.writeFile('vis.0', pathInstance + 'cover.' + type, cover);
             buffCover = '';
         }
     }
@@ -638,9 +656,12 @@ function main(){
         model:     '',
         reconnect: true
     };
-    dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + adapter.namespace.replace('.', '_') + '/';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    fs.copyFileSync(__dirname + '/admin/cover.png', dir + 'cover.png');
+    pathInstance = adapter.namespace.replace('.', '_') + '/';
+    //dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + adapter.namespace.replace('.', '_') + '/';
+    //dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + 'files/onkyo2.admin/';
+    //if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    //fs.copyFileSync(__dirname + '/admin/cover.png', dir + 'cover.png');
+    adapter.writeFile('vis.0', pathInstance + 'cover.png', fs.readFileSync(__dirname + '/admin/cover.png'));
     connect(options);
 }
 

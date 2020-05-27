@@ -194,6 +194,20 @@
       "native": {
         "val": "PLAY"
       }
+    },
+    {
+      "_id": "dock.net-usb-listinfo-select",
+      "type": "state",
+      "common": {
+        "name": "Select number Item from listinfo (0-9)",
+        "type": "number",
+        "min": 0,
+        "max": 9,
+        "role": "state",
+        "read": true,
+        "write": true
+      },
+      "native": {}
     }
   ]
 }
