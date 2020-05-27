@@ -620,7 +620,7 @@ function connect(options){
     eiscp.connect(options);
     eiscp.on('connect', () => {
         adapter.log.info('Successfully connected to AVR');
-        adapter.setState('info.connected', true, true);
+        adapter.setState('info.connection', true, true);
         getCommands();
     });
     eiscp.on('close', () => {

@@ -95,6 +95,15 @@
       "native": {}
     },
     {
+      "_id": "",
+      "type": "meta",
+      "common": {
+        "name": "user files and images for vis",
+        "type": "meta.user"
+      },
+      "native": {}
+    },
+    {
       "_id": "info.connection",
       "type": "state",
       "common": {
