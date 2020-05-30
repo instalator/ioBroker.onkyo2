@@ -5,7 +5,6 @@
 [![NPM version](http://img.shields.io/npm/v/iobroker.onkyo2.svg)](https://www.npmjs.com/package/iobroker.onkyo2)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.onkyo2.svg)](https://www.npmjs.com/package/iobroker.onkyo2)
 ![Number of Installations](http://iobroker.live/badges/onkyo2-installed.svg) 
-[![Dependency Status](https://img.shields.io/david/instalator/iobroker.onkyo2.svg)](https://david-dm.org/instalator/iobroker.onkyo2)
 [![Known Vulnerabilities](https://snyk.io/test/github/instalator/ioBroker.onkyo2/badge.svg)](https://snyk.io/test/github/instalator/ioBroker.onkyo2)
 [![Travis-CI](http://img.shields.io/travis/instalator/ioBroker.onkyo2/master.svg)](https://travis-ci.org/instalator/ioBroker.onkyo2)
 
