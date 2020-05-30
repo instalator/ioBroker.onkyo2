@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^2.4.0",
-    "async": "^3.2.0"
+    "async": "^3.2.0",
+    "fast-xml-parser": "^3.17.3"
   },
   "devDependencies": {
     "xlsx": "^0.16.0",

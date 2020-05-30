@@ -2,8 +2,10 @@
 const utils = require('@iobroker/adapter-core');
 const eiscp = require('./lib/eiscp');
 const fs = require('fs');
-let adapter, old_states, timeOutQuery, objNLS = [], pathInstance, buffCover = '', dir;
-let states = {
+const parser = require('fast-xml-parser');
+const backText = '< ... >';
+let adapter, old_states, timeOutQuery, objNLS = [backText], buffCover = '', sequence;
+const states = {
     main:  {},
     zone2: {},
     zone3: {},
@@ -24,8 +26,9 @@ const objects = {
     'net-usb-artist-name-info': {role: 'media.artist', name: 'Artist', type: 'string', read: true, write: false},
     'net-usb-title-name':       {role: 'media.title', name: 'Title', type: 'string', read: true, write: false},
     'net-usb-list-title-info':  {role: 'state', name: 'NET/USB List Title Info(for Network Control Only)', type: 'string', read: true, write: false},
-    'net-usb-listinfo':         {role: 'state', name: 'NET/USB ListInfo', type: 'string', read: true, write: false},
+    'net-usb-listinfo':         {role: 'media.menu', name: 'NET/USB ListInfo', type: 'string', read: true, write: false},
     'net-usb-listinfo-current': {role: 'state', name: 'NET/USB List Info Curren Item', type: 'string', read: true, write: false},
+    'net-usb-listinfo-select':  {role: 'media.menu.item', name: 'NET/USB List Info Curren Item', type: 'string', read: true, write: false},
     total_track:                {role: 'media', name: 'Number of tracks in the playlist', type: 'number', read: true, write: false},
     'net-usb-jacket-art':       {role: 'media.cover', name: 'Cover', type: 'string', read: true, write: false},
     'input-selector':           {role: 'media.input', name: 'Input Selector Command', type: 'string', read: true, write: true},
@@ -64,11 +67,19 @@ function startAdapter(options){
                         }
                         return;
                     }
-                    if ((cmd === 'system-power' || cmd === 'power') && (val === false || val === 'false')) val = 'standby';
+                    if ((cmd === 'system-power' || cmd === 'power') && val === 'false') val = 'standby';
                     if (cmd === 'net-usb-listinfo-select'){
-                        if (state.val < 0) state.val = 0;
-                        if (state.val > 9) state.val = 9;
-                        eiscp.raw('NLSL' + state.val);
+                        val = parseInt(state.val, 10);
+                        if (val < 0) val = 0;
+                        if (val > 11) val = 11;
+                        if (val === 0){ // Return
+                            eiscp.raw('NTCRETURN');
+                        } else if (val === 11){ // Next
+                            eiscp.raw('NLSL');
+                        } else {
+                            val--;
+                            eiscp.raw('NLSL' + val);
+                        }
                         return;
                     }
                     if (cmd === 'next' || cmd === 'pause' || cmd === 'play' || cmd === 'prev' || cmd === 'stop'){
@@ -84,7 +95,7 @@ function startAdapter(options){
                         return;
                     }
                     if (~ids.indexOf('volume')){
-                        SetIntervalVol(cmd, val, zone);
+                        smoothVolume(cmd, val, zone);
                         return;
                     }
                     if (cmd === 'tuning'){
@@ -118,7 +129,7 @@ function startAdapter(options){
     }));
 }
 
-
+let timeOutNLS;
 
 function parse(zone, cmd, val, iscp){
     adapter.log.debug('parse function: zone - ' + zone + ' | cmd - ' + cmd + ' | val - ' + val);
@@ -255,25 +266,127 @@ function parse(zone, cmd, val, iscp){
         states.dock.NumberListItems = {val: val.substr(8, 4)};
         states.dock.NumberLayer = {val: val.substr(12, 2)};
         states.dock.StartFlag = {val: NLT.StartFlag[val.substr(14, 1)]};
-        states.dock.IconLeftTitleBar = {val: NLT.IconLeftTitleBar[val.substr(16, 2)]};
-        states.dock.IconRightTitleBar = {val: NLT.IconRightTitleBar[val.substr(18, 2)]};
+        //states.dock.IconLeftTitleBar = {val: NLT.IconLeftTitleBar[val.substr(16, 2)]};
+        //states.dock.IconRightTitleBar = {val: NLT.IconRightTitleBar[val.substr(18, 2)]};
         states.dock.StatusInfo = {val: NLT.StatusInfo[val.substr(20, 2)]};
         states.dock.CharacterTitleBar = {val: val.substr(22)};
+        if (states.dock.UIType.val === 'Playback'){
+            objNLS = [backText, 'Playback'];
+            states['dock']['net-usb-listinfo'] = {val: JSON.stringify(objNLS)};
+        }
+        
+        let cmd = 'NLAL' + (sequence || '0000') + val.substr(12, 2) + '0000' + val.substr(8, 4);
+        console.log('** cmd = ' + cmd);
+        eiscp.raw(cmd);
+    }
+    if (iscp === 'NLA'){
+        const jsonObj = parser.parse(val.slice(9), {attributeNamePrefix: '', ignoreAttributes: false, parseNodeValue: true, parseAttributeValue: true,});
+        sequence = val.substr(1, 4);
+        if(val[5] !== 'E'){
+            const list = [];
+            if (Array.isArray(jsonObj.response.items.item)){
+                jsonObj.response.items.item.forEach((key) => {
+                    list.push(key);
+                });
+            } else {
+                list[0] = jsonObj.response.items.item;
+            }
+            states['dock']['NavList'] = {val: JSON.stringify(list)};
+        } else {
+            adapter.log.error(jsonObj.response.error.code + ' ' + jsonObj.response.error.message);
+        }
+        // NET/USB List Info(All item, need processing XML data, for Network Control Only)
+        /*
+    * "tzzzzsurr<.....>"	
+        "t -> responce type 'X' : XML
+        zzzz -> sequence number (0000-FFFF)
+        s -> status 'S' : success, 'E' : error
+        u -> UI type '0' : List, '1' : Menu, '2' : Playback, '3' : Popup, '4' : Keyboard, ""5"" : Menu List
+        rr -> reserved
+        <.....> : XML data ( [CR] and [LF] are removed )
+         If s='S',
+             <?xml version=""1.0"" encoding=""UFT-8""?>
+             <response status=""ok"">
+               <items offset=""xxxx"" totalitems=""yyyy"" >
+                 <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
+                 …
+                 <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
+               </Items>
+             </response>
+         If s='E',
+             <?xml version=""1.0"" encoding=""UFT-8""?>
+             <response status=""fail"">
+               <error code=""[error code]"" message=""[error message]"" />
+             </response>
+             
+        xxxx : index of 1st item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+        yyyy : number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )
+        aa : Icon ID
+         '29' : Folder, '2A' : Folder X, '2B' : Server, '2C' : Server X, '2D' : Title, '2E' : Title X,
+         '2F' : Program, '31' : USB, '36' : Play, '37' : MultiAccount,
+         for Spotify
+         '38' : Account, '39' : Album, '3A' : Playlist, '3B' : Playlist-C, '3C' : starred,
+         '3D' : What'sNew, '3E' : Artist, '3F' : Track, '40' : unstarred, '41' : Play, '43' : Search, '44' : Folder
+         for AUPEO!
+         '42' : Program
+        bbb...bbb : Title
+        "
+  * "Lzzzzllxxxxyyyy"	"specifiy to get the listed data (from Network Control Only)
+        zzzz -> sequence number (0000-FFFF)
+        ll -> number of layer (00-FF)
+        xxxx -> index of start item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+        yyyy -> number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )"
+
+  * "Izzzzllxxxx----"	"select the listed item (from Network Control Only)
+        zzzz -> sequence number (0000-FFFF)
+        ll -> number of layer (00-FF)
+        xxxx -> index number (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
+        ---- -> not used" NLAI0000000000
+         */
+        //states.dock = {val: };
     }
     if (iscp === 'NLS'){
         console.log(' iscp === \'NLS\' - ' + val);
+        timeOutNLS && clearTimeout(timeOutNLS);
+        const NLS = {
+            '0': 'Playing',
+            'A': 'Artist',
+            'B': 'Album',
+            'F': 'Folder',
+            'M': 'Music',
+            'P': 'Playlist',
+            'S': 'Searc',
+            'a': 'Account',
+            'b': 'Playlist-C',
+            'c': 'Starred',
+            'd': 'Unstarred',
+            'e': 'What \'s New',
+        };
+        if (val[0] === 'A'){
+            console.log(val[0] === 'A');
+        }
         if (val[0] === 'U'){
             if (val[1] === '0'){
-                objNLS = [];
-                objNLS.push(val.replace(/U.-/, ''));
-                states[zone]['net-usb-listinfo-current'] = {val: objNLS[0]};
+                objNLS = [backText];
+                objNLS.push(val.replace(/U.-/, '')); //val = iconv.decode(val, 'win1251');
+                states[zone]['net-usb-listinfo-select'] = {val: 0};
             } else {
                 objNLS.push(val.replace(/U.-/, ''));
             }
         }
-        if (val[0] === 'C' && val[1] !== '-' && objNLS.length > 0){
-            states[zone]['net-usb-listinfo-current'] = {val: objNLS[parseInt(val[1], 10)]};
+        if (val[0] === 'C' && val[1] !== '-' && objNLS.length > 1){
+            states[zone]['net-usb-listinfo-current'] = {val: NLS[val[2]]};
+            states[zone]['net-usb-listinfo-select'] = {val: parseInt(val[1], 10) + 1};
         }
+
+        timeOutNLS = setTimeout(() => {
+            if (val[0] !== 'C'){
+                objNLS.push(' Next');
+            }
+            states['dock']['net-usb-listinfo'] = {val: JSON.stringify(objNLS)};
+            creatObjects(states);
+        }, 500);
+        return;
         /* "tlpnnnnnnnnnn"
             t ->Information Type (A : ASCII letter, C : Cursor Info, U : Unicode letter)
             when t = A,
@@ -304,7 +417,6 @@ function parse(zone, cmd, val, iscp){
                 when t = I,
                   iiiii -> Index number (00001-99999 : 1st to 99999th Item [5 digits] )"
         */
-        val = JSON.stringify(objNLS);
     }
     if (iscp === 'TUN' || iscp === 'TUZ' || iscp === 'TU3' || iscp === 'TU4'){
         val = val / 100;
@@ -444,10 +556,10 @@ function parse(zone, cmd, val, iscp){
             2: 'url',
             n: 'No Image',
         };
-        if (val[0] < 3){
+        if (val[0] !== 'n'){
             type = types[val[0]];
         } else {
-            val = '../vis.0/' + pathInstance + 'cover.png';
+            val = '../' + adapter.namespace + '/cover.png';
         }
         if (val[1] === '0'){
             buffCover = val.slice(2);
@@ -458,11 +570,10 @@ function parse(zone, cmd, val, iscp){
             return;
         }
         if (val[1] === '2'){
-            val = '../vis.0/' + pathInstance + 'cover.' + type;
+            val = '../' + adapter.namespace + '/cover.' + type;
             buffCover = buffCover + val.slice(2);
-            const cover = Buffer.from(buffCover, 'hex');//.toString('base64');
-            //fs.writeFileSync(dir + 'cover.' + type, cover, {encoding: 'base64'});
-            adapter.writeFile('vis.0', pathInstance + 'cover.' + type, cover);
+            const cover = Buffer.from(buffCover, 'hex');
+            adapter.writeFile(adapter.namespace, 'cover.' + type, cover);
             buffCover = '';
         }
     }
@@ -474,60 +585,9 @@ function parse(zone, cmd, val, iscp){
         //    This command is only available when Time Seek is enable."
         //states.dock.seek = {val: };
     }
-    if (iscp === 'NLA'){
-        console.log();
-        // NET/USB List Info(All item, need processing XML data, for Network Control Only)
-        /*
-        * "tzzzzsurr<.....>"	"t -> responce type 'X' : XML
-    zzzz -> sequence number (0000-FFFF)
-    s -> status 'S' : success, 'E' : error
-    u -> UI type '0' : List, '1' : Menu, '2' : Playback, '3' : Popup, '4' : Keyboard, ""5"" : Menu List
-    rr -> reserved
-    <.....> : XML data ( [CR] and [LF] are removed )
-     If s='S',
-     <?xml version=""1.0"" encoding=""UFT-8""?>
-     <response status=""ok"">
-       <items offset=""xxxx"" totalitems=""yyyy"" >
-         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
-         …
-         <item iconid=""aa"" title=""bbb…bbb"" url=""ccc...ccc""/>
-       </Items>
-     </response>
-     If s='E',
-     <?xml version=""1.0"" encoding=""UFT-8""?>
-     <response status=""fail"">
-       <error code=""[error code]"" message=""[error message]"" />
-     </response>
-    xxxx : index of 1st item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    yyyy : number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )
-    aa : Icon ID
-     '29' : Folder, '2A' : Folder X, '2B' : Server, '2C' : Server X, '2D' : Title, '2E' : Title X,
-     '2F' : Program, '31' : USB, '36' : Play, '37' : MultiAccount,
-     for Spotify
-     '38' : Account, '39' : Album, '3A' : Playlist, '3B' : Playlist-C, '3C' : starred,
-     '3D' : What'sNew, '3E' : Artist, '3F' : Track, '40' : unstarred, '41' : Play, '43' : Search, '44' : Folder
-     for AUPEO!
-     '42' : Program
-    bbb...bbb : Title
-    "
-  * "Lzzzzllxxxxyyyy"	"specifiy to get the listed data (from Network Control Only)
-    zzzz -> sequence number (0000-FFFF)
-    ll -> number of layer (00-FF)
-    xxxx -> index of start item (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    yyyy -> number of items (0000-FFFF : 1 to 65536 Items [4 HEX digits] )"
-
-  * "Izzzzllxxxx----"	"select the listed item (from Network Control Only)
-    zzzz -> sequence number (0000-FFFF)
-    ll -> number of layer (00-FF)
-    xxxx -> index number (0000-FFFF : 1st to 65536th Item [4 HEX digits] )
-    ---- -> not used"
-         */
-        //states.dock = {val: };
+    if (iscp === 'NCP'){
+        console.log('NCP = ' + val);
     }
-    if (iscp === 'NTI'){
-        console.log();
-    }
-
 
     if (cmd && states[zone][cmd] && states[zone][cmd] !== undefined){
         states[zone][cmd].val = val;
@@ -543,7 +603,7 @@ function creatObjects(states){
     Object.keys(states).forEach((zone) => {
         Object.keys(states[zone]).forEach((cmd) => {
             ids = zone + '.' + cmd;
-            if (!old_states[zone].hasOwnProperty(cmd)){
+            if (old_states[zone][cmd] === undefined){
                 old_states[zone][cmd] = {
                     val:    null,
                     values: states[zone][cmd].values,
@@ -563,10 +623,10 @@ function setObject(ids, zone, cmd, val){
     //console.log(states);
     if (Array.isArray(val)) val = val.join(', ');
     adapter.getObject(ids, (err, obj) => {
-        let common = {
+        const common = {
             name: states[zone][cmd].desc, desc: states[zone][cmd].desc, type: 'string', role: 'state'
         };
-        let native = {};
+        const native = {};
         if (states[zone][cmd].values !== undefined){
             common.states = {};
             Object.keys(states[zone][cmd].values).forEach((key) => {
@@ -642,7 +702,7 @@ function connect(options){
         adapter.log.error('Error: ' + e);
     });
     eiscp.on('debug', (message) => {
-        //adapter.log.debug(message);
+        adapter.log.debug(message);
     });
 }
 
@@ -656,12 +716,7 @@ function main(){
         model:     '',
         reconnect: true
     };
-    pathInstance = adapter.namespace.replace('.', '_') + '/';
-    //dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + adapter.namespace.replace('.', '_') + '/';
-    //dir = utils.controllerDir + '/' + adapter.systemConfig.dataDir + 'files/onkyo2.admin/';
-    //if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    //fs.copyFileSync(__dirname + '/admin/cover.png', dir + 'cover.png');
-    adapter.writeFile('vis.0', pathInstance + 'cover.png', fs.readFileSync(__dirname + '/admin/cover.png'));
+    adapter.writeFile(adapter.namespace, 'cover.png', fs.readFileSync(__dirname + '/admin/cover.png'));
     connect(options);
 }
 
@@ -674,14 +729,14 @@ function clearStatePlayer(){
     states.dock.seek.val = 0;
 }
 
-function SetIntervalVol(cmd, newVal, zone){
+function smoothVolume(cmd, newVal, zone){
     let volume = states[zone].volume.val;
     if (newVal >= volume + 10){
         const interval = setInterval(() => {
             volume = volume + 2;
             if (volume >= newVal){
                 volume = newVal;
-                clearInterval(interval);
+                interval && clearInterval(interval);
             }
             eiscp.command(zone, cmd, volume);
         }, 500);

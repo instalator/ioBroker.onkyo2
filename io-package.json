@@ -74,6 +74,9 @@
     "type": "multimedia",
     "compact": true,
     "materialize": true,
+    "restartAdapters": [
+      "vis"
+    ],
     "dependencies": [
       {
         "js-controller": ">=1.4.2"
@@ -98,7 +101,7 @@
       "_id": "",
       "type": "meta",
       "common": {
-        "name": "user files and images for vis",
+        "name": "Onkyo",
         "type": "meta.user"
       },
       "native": {}
