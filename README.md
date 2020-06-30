@@ -16,6 +16,10 @@
 
 Control Onkyo and Pioneer AVRs via EISCP
 
+### Widgets
+
+![Widgets](admin/widgets.png)
+
 ## Changelog
 
 ### 0.0.2
