@@ -120,7 +120,7 @@ function startAdapter(options){
                     eiscp.command(zone, cmd, val);
                     timeOutQuery = setTimeout(() => {
                         eiscp.command(zone, cmd, 'query');
-                    }, 500);
+                    }, 1000);
                 }
             } else {
                 adapter.log.info(`state ${id} deleted`);
@@ -293,7 +293,7 @@ function parse(zone, cmd, val, iscp){
             }
             states['dock']['NavList'] = {val: JSON.stringify(list)};
         } else {
-            adapter.log.error(jsonObj.response.error.code + ' ' + jsonObj.response.error.message);
+            adapter.log.warn(jsonObj.response.error.code + ' NLA cmd - ' + jsonObj.response.error.message);
         }
         // NET/USB List Info(All item, need processing XML data, for Network Control Only)
         /*
