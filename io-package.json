@@ -1,19 +1,19 @@
 {
   "common": {
     "name": "onkyo2",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "news": {
-      "0.0.2": {
-        "en": "",
-        "de": "",
-        "ru": "",
-        "pt": "",
-        "nl": "",
-        "fr": "",
-        "it": "",
-        "es": "",
-        "pl": "",
-        "zh-cn": ""
+      "0.0.3": {
+        "en": "change test",
+        "de": "change test",
+        "ru": "change test",
+        "pt": "change test",
+        "nl": "change test",
+        "fr": "change test",
+        "it": "change test",
+        "es": "change test",
+        "pl": "change test",
+        "zh-cn": "change test"
       },
       "0.0.1": {
         "en": "initial release",

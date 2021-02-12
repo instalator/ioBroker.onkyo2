@@ -5,11 +5,12 @@
 [![Downloads](https://img.shields.io/npm/dm/iobroker.onkyo2.svg)](https://www.npmjs.com/package/iobroker.onkyo2)
 ![Number of Installations](http://iobroker.live/badges/onkyo2-installed.svg) 
 [![Known Vulnerabilities](https://snyk.io/test/github/instalator/ioBroker.onkyo2/badge.svg)](https://snyk.io/test/github/instalator/ioBroker.onkyo2)
-[![Travis-CI](http://img.shields.io/travis/instalator/ioBroker.onkyo2/master.svg)](https://travis-ci.org/instalator/ioBroker.onkyo2)
+[![Tests](https://github.com/instalator/iobroker.onkyo2/workflows/Test%20and%20Release/badge.svg)](https://github.com/instalator/ioBroker.onkyo2/actions/)    
 
 [![NPM](https://nodei.co/npm/iobroker.onkyo2.png?downloads=true)](https://nodei.co/npm/iobroker.onkyo2/)
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PFUALWTR2CTPY)
+[![Donate](https://img.shields.io/badge/Donate-YooMoney-green)](https://sobe.ru/na/instalator)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PFUALWTR2CTPY)  
 
 ## onkyo2 adapter for ioBroker 
 
@@ -21,8 +22,8 @@ Control Onkyo and Pioneer AVRs via EISCP
 
 ## Changelog
 
-### 0.0.2
-* (instalator)
+### 0.0.3
+* (instalator) change test
 
 ### 0.0.1
 * (instalator) initial release
@@ -30,7 +31,7 @@ Control Onkyo and Pioneer AVRs via EISCP
 ## License
 MIT License
 
-Copyright (c) 2020 instalator <vvvalt@mail.ru>
+Copyright (c) 2021 instalator <vvvalt@mail.ru>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

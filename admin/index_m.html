@@ -41,12 +41,39 @@
             callback(obj);
         }
     </script>
+    <script>
+        $(function (){
+            $(".adapter-body").append("" +
+                "<div class=\"m row\" style='display:block;position:absolute;bottom:130px;right:0;'>" +
+                "<div class=\"col right\">" +
+                "<div class=\"col\" style=\"margin-top:10px;float:right;margin-right:20px;\">" +
+                "<a target=\"_blank\" href=\"https://sobe.ru/na/instalator\"><img style=\"float:right;\" src=\"https://img.shields.io/badge/Donate-YooMoney-green\" alt=\"\"></a>" +
+                "<a target=\"_blank\" href=\"https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PFUALWTR2CTPY\"><img style=\"float:right;padding-right:10px;\" src=\"https://img.shields.io/badge/Donate-PayPal-green.svg\" alt=\"\"></a>" +
+                "</div></div></div>");
+        });
+    </script>
     <style>
         .adapter-body {
-            background: url(818.png);
-            background-position: bottom;
+            display: block;
+        }
+
+        .m .input-field > label {
+            color: #5a5a5a;
+        }
+
+        .adapter-body::after {
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            content: "";
+            background: url(background.png);
+            background-position: top;
             background-repeat: no-repeat;
-            background-size: auto;
+            background-size: cover;
+            opacity: 0.2;
+            position: absolute;
+            z-index: -1;
         }
     </style>
 </head>

@@ -57,8 +57,14 @@ function startAdapter(options){
                     const zone = ids[2];
                     let cmd = ids[3];
                     let val = state.val.toString();
-                    if (val === 'true') val = 'on';
-                    if (val === 'false') val = 'off';
+                    if (val === 'true') {
+                        val = 'on';
+                        states[zone][cmd] = {val: ''};
+                    }
+                    if (val === 'false') {
+                        val = 'off';
+                        states[zone][cmd] = {val: ''};
+                    }
                     if (zone === 'command'){
                         if (state.val.match(/^[A-Z0-9\-+]+$/)){
                             eiscp.raw(state.val);
@@ -120,7 +126,7 @@ function startAdapter(options){
                     eiscp.command(zone, cmd, val);
                     timeOutQuery = setTimeout(() => {
                         eiscp.command(zone, cmd, 'query');
-                    }, 1000);
+                    }, 2000);
                 }
             } else {
                 adapter.log.info(`state ${id} deleted`);
