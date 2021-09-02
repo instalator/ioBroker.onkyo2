@@ -1,0 +1,27 @@
+<!--
+    ioBroker.iobroker.onkyo Widget-Set
+    version: "1.0.0"
+    Copyright 2020 instalator<vvvalt@mail.ru>
+-->
+
+<link rel="stylesheet" href="widgets/onkyo2/css/style.css"/>
+<script type="text/javascript" src="widgets/onkyo2/js/onkyo2.js"></script>
+<script src="widgets/onkyo2/js/jQuery.WSlot.js"></script>
+
+<script id="tplOnkyoNavigation"
+        type="text/ejs"
+        class="vis-tpl"
+        data-vis-prev='<img style="width:110px; height:90px" src="widgets/onkyo2/img/preview/navigation.png"></img>'
+        data-vis-attrs="oid_list/id/onNavigationBrowserChanged;oid_select/id/;"
+        data-vis-attrs0="group.styles;angle[15];distance[80];displayed_length[4];rotation[-5];item_height[26];"
+        data-vis-set="onkyo2"
+        data-vis-type="val"
+        data-vis-name="Onkyo Navigation">
+	<div class="vis-widget <%== this.data.attr('class') %>" style="width:350px; height:200px" id="<%= this.data.attr('wid') %>" >
+			<div id="onkyo-navigation">
+			</div>
+       <% vis.binds.onkyo2.Navigation(this.data.wid, this.view, this.data, this.style);%>
+	</div>
+</script>
+
+

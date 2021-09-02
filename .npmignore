@@ -1,0 +1,36 @@
+.git
+.idea
+node_modules/
+nbproject/
+.vs*/
+*.code-workspace
+Thumbs.db
+gulpfile.js
+devfiles
+test/
+travis/
+.travis.yml
+appveyor.yml
+.travis.yaml
+appveyor.yaml
+tsconfig.json
+
+lib/out_file.xls
+lib/out_file_dock.xls
+lib/out_file_main.xls
+lib/out_file_zone2.xls
+lib/out_file_zone3.xls
+lib/out_file_zone4.xls
+
+.eslintrc.json
+.eslintrc.js
+
+# npm package files
+iobroker.*.tgz
+package-lock.json
+
+# i18n intermediate files
+admin/i18n
+
+# maintenance scripts
+maintenance/**

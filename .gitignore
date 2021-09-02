@@ -1,0 +1,21 @@
+.git
+.idea
+*.code-workspace
+node_modules
+nbproject
+devfiles
+# npm package files
+iobroker.*.tgz
+tsconfig.json
+
+Thumbs.db
+lib/out_file.xls
+lib/out_file_dock.xls
+lib/out_file_main.xls
+lib/out_file_zone2.xls
+lib/out_file_zone3.xls
+lib/out_file_zone4.xls
+
+# i18n intermediate files
+admin/i18n/flat.txt
+admin/i18n/*/flat.txt

@@ -1,0 +1,225 @@
+{
+  "common": {
+    "name": "onkyo2",
+    "version": "0.0.3",
+    "news": {
+      "0.0.3": {
+        "en": "change test",
+        "de": "change test",
+        "ru": "change test",
+        "pt": "change test",
+        "nl": "change test",
+        "fr": "change test",
+        "it": "change test",
+        "es": "change test",
+        "pl": "change test",
+        "zh-cn": "change test"
+      },
+      "0.0.1": {
+        "en": "initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Начальная версия",
+        "pt": "lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Première version",
+        "it": "Versione iniziale",
+        "es": "Versión inicial",
+        "pl": "Pierwsze wydanie",
+        "zh-cn": "首次出版"
+      }
+    },
+    "title": "Control Onkyo and Pioneer AVRs via EISCP",
+    "titleLang": {
+      "en": "Control Onkyo and Pioneer AVRs via EISCP",
+      "de": "Steuern Sie Onkyo- und Pioneer-AVRs über EISCP",
+      "ru": "Управление Onkyo и Pioneer AVR через EISCP",
+      "pt": "Controle os AVRs da Onkyo e da Pioneer via EISCP",
+      "nl": "Bedien Onkyo en Pioneer AVR's via EISCP",
+      "fr": "Contrôlez les AVR Onkyo et Pioneer via EISCP",
+      "it": "Controlla gli AVR Onkyo e Pioneer tramite EISCP",
+      "es": "Controle los AVR de Onkyo y Pioneer a través de EISCP",
+      "pl": "Kontroluj AVR Onkyo i Pioneer za pomocą EISCP",
+      "zh-cn": "通过EISCP控制Onkyo和Pioneer AVR"
+    },
+    "desc": {
+      "en": "Control Onkyo and Pioneer AVRs via EISCP",
+      "de": "Steuern Sie Onkyo- und Pioneer-AVRs über EISCP",
+      "ru": "Управление Onkyo и Pioneer AVR через EISCP",
+      "pt": "Controle os AVRs da Onkyo e da Pioneer via EISCP",
+      "nl": "Bedien Onkyo en Pioneer AVR's via EISCP",
+      "fr": "Contrôlez les AVR Onkyo et Pioneer via EISCP",
+      "it": "Controlla gli AVR Onkyo e Pioneer tramite EISCP",
+      "es": "Controle los AVR de Onkyo y Pioneer a través de EISCP",
+      "pl": "Kontroluj AVR Onkyo i Pioneer za pomocą EISCP",
+      "zh-cn": "通过EISCP控制Onkyo和Pioneer AVR"
+    },
+    "authors": [
+      "instalator <vvvalt@mail.ru>"
+    ],
+    "keywords": [
+      "onkyo",
+      "pioneer",
+      "avr",
+      "eiscp"
+    ],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "main": "main.js",
+    "icon": "onkyo2.png",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/instalator/ioBroker.onkyo2/master/admin/onkyo2.png",
+    "readme": "https://github.com/instalator/ioBroker.onkyo2/blob/master/README.md",
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "multimedia",
+    "compact": true,
+    "materialize": true,
+    "restartAdapters": [
+      "vis"
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=1.4.2"
+      }
+    ]
+  },
+  "native": {
+    "host": "",
+    "port": 60128
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "",
+      "type": "meta",
+      "common": {
+        "name": "Onkyo",
+        "type": "meta.user"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Device or service connected",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "command",
+      "type": "state",
+      "common": {
+        "name": "Send raw or high level command",
+        "type": "string",
+        "role": "media.command",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "dock.prev",
+      "type": "state",
+      "common": {
+        "name": "Controlling playback previous",
+        "type": "boolean",
+        "role": "button.prev",
+        "read": false,
+        "write": true,
+        "def": false
+      },
+      "native": {
+        "val": "TRDN"
+      }
+    },
+    {
+      "_id": "dock.next",
+      "type": "state",
+      "common": {
+        "name": "Controlling playback next",
+        "type": "boolean",
+        "role": "button.next",
+        "read": false,
+        "write": true,
+        "def": false
+      },
+      "native": {
+        "val": "TRUP"
+      }
+    },
+    {
+      "_id": "dock.stop",
+      "type": "state",
+      "common": {
+        "name": "Controlling playback stop",
+        "type": "boolean",
+        "role": "button.stop",
+        "read": false,
+        "write": true,
+        "def": false
+      },
+      "native": {
+        "val": "STOP"
+      }
+    },
+    {
+      "_id": "dock.pause",
+      "type": "state",
+      "common": {
+        "name": "Controlling playback pause",
+        "type": "boolean",
+        "role": "button.pause",
+        "read": false,
+        "write": true,
+        "def": false
+      },
+      "native": {
+        "val": "PAUSE"
+      }
+    },
+    {
+      "_id": "dock.play",
+      "type": "state",
+      "common": {
+        "name": "Controlling playback play",
+        "type": "boolean",
+        "role": "button.play",
+        "read": false,
+        "write": true,
+        "def": false
+      },
+      "native": {
+        "val": "PLAY"
+      }
+    },
+    {
+      "_id": "dock.net-usb-listinfo-select",
+      "type": "state",
+      "common": {
+        "name": "Select number Item from listinfo (0-9)",
+        "type": "number",
+        "min": 0,
+        "max": 9,
+        "role": "state",
+        "read": true,
+        "write": true
+      },
+      "native": {}
+    }
+  ]
+}
