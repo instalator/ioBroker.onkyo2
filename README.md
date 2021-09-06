@@ -1,14 +1,6 @@
 ![Logo](admin/onkyo_rm.png)
 # ioBroker.onkyo2
 
-[![NPM version](http://img.shields.io/npm/v/iobroker.onkyo2.svg)](https://www.npmjs.com/package/iobroker.onkyo2)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.onkyo2.svg)](https://www.npmjs.com/package/iobroker.onkyo2)
-![Number of Installations](http://iobroker.live/badges/onkyo2-installed.svg) 
-[![Known Vulnerabilities](https://snyk.io/test/github/instalator/ioBroker.onkyo2/badge.svg)](https://snyk.io/test/github/instalator/ioBroker.onkyo2)
-[![Tests](https://github.com/instalator/iobroker.onkyo2/workflows/Test%20and%20Release/badge.svg)](https://github.com/instalator/ioBroker.onkyo2/actions/)    
-
-[![NPM](https://nodei.co/npm/iobroker.onkyo2.png?downloads=true)](https://nodei.co/npm/iobroker.onkyo2/)
-
 [![Donate](https://img.shields.io/badge/Donate-YooMoney-green)](https://sobe.ru/na/instalator)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PFUALWTR2CTPY)  
 

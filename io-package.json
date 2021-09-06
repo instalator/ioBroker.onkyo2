@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "onkyo2",
-    "version": "0.0.3",
+    "version": "1.0.0",
     "news": {
       "0.0.3": {
         "en": "change test",
